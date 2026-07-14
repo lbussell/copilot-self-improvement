@@ -1,4 +1,7 @@
 import { joinSession } from "@github/copilot-sdk/extension";
+import { loadSettings } from "./settings.mjs";
+
+const settings = await loadSettings();
 
 const memory = "";
 
