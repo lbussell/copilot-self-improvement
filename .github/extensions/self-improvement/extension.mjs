@@ -38,7 +38,7 @@ When using a skill and finding it outdated, incomplete, or wrong, patch it immed
 session = await joinSession({
     commands: [
         {
-            name: "self-review",
+            name: "reflect",
             description: "Run the self-improvement review now",
             handler: async () => {
                 if (reviewInProgress) {
@@ -78,7 +78,7 @@ session = await joinSession({
 await session.log(
     [
         `Self-improvement enabled (reviews every ${defaultReviewInterval} turns)`,
-        "Run now: /self-review",
+        "Run now: /reflect",
         `Skills: ${skillDirectory}`,
         `Memory: ${memory.paths.memory}`,
         `User: ${memory.paths.user}`,

@@ -28,7 +28,7 @@ Every few turns, a background agent analyzes your conversation and looks for
 things that went wrong, corrections you made, preferences you expressed, etc.
 and make updates to memory, skills, and instructions accordingly.
 
-You can run `/self-review` to manually trigger the review process.
+You can run `/reflect` to manually trigger the review process.
 
 ## Data and settings
 
