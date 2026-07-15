@@ -77,11 +77,10 @@ session = await joinSession({
 
 await session.log(
     [
-        `Self-improvement enabled (reviews every ${defaultReviewInterval} turns)`,
-        "Run now: /reflect",
-        `Skills: ${skillDirectory}`,
-        `Memory: ${memory.paths.memory}`,
-        `User: ${memory.paths.user}`,
+        `Self-improvement enabled (every ${defaultReviewInterval} turns).`
+            + ` /reflect to run self-reflection without waiting ${defaultReviewInterval} turns.`,
+        `Skills: \`${skillDirectory}\``,
+        `Memory: \`${memory.paths.memory}\``,
     ].join("\n"),
     { ephemeral: true },
 );
@@ -145,7 +144,7 @@ session.on("tool.execution_complete", async (event) => {
     const changes = getFileChanges(toolCall.name, toolCall.args, memory.paths);
     for (const change of changes) {
         await session.log(
-            `Self-improvement ${change.operation}: ${change.path}`,
+            `Self-improvement ${change.operation}: \`${change.path}\``,
             { ephemeral: true },
         );
     }
