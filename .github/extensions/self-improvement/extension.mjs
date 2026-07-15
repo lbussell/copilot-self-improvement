@@ -7,6 +7,7 @@ import {
     createPeriodicCurationReview,
     defaultReviewInterval,
     formatRecentConversation,
+    getFileChanges,
 } from "./curation.mjs";
 import { createMemory } from "./memory.mjs";
 import { loadSettings } from "./settings.mjs";
@@ -21,6 +22,7 @@ const curationReview = createPeriodicCurationReview();
 let reviewPending = false;
 let reviewInProgress = false;
 let reviewAgentId;
+const reviewToolCalls = new Map();
 let session;
 
 const skillsGuidance = `
@@ -34,6 +36,24 @@ When using a skill and finding it outdated, incomplete, or wrong, patch it immed
 `.trim();
 
 session = await joinSession({
+    commands: [
+        {
+            name: "self-review",
+            description: "Run the self-improvement review now",
+            handler: async () => {
+                if (reviewInProgress) {
+                    await session.log(
+                        "A self-improvement review agent is already running",
+                        { ephemeral: true },
+                    );
+                    return;
+                }
+
+                reviewPending = false;
+                await runReview();
+            },
+        },
+    ],
     systemMessage: {
         mode: "append",
         content: `${skillsGuidance}\n\n${memory.prompt}`,
@@ -58,6 +78,7 @@ session = await joinSession({
 await session.log(
     [
         `Self-improvement enabled (reviews every ${defaultReviewInterval} turns)`,
+        "Run now: /self-review",
         `Skills: ${skillDirectory}`,
         `Memory: ${memory.paths.memory}`,
         `User: ${memory.paths.user}`,
@@ -101,6 +122,35 @@ session.on("session.idle", () => {
     void runReview();
 });
 
+session.on("tool.execution_start", (event) => {
+    if (event.agentId === reviewAgentId) {
+        reviewToolCalls.set(event.data.toolCallId, {
+            args: event.data.arguments ?? {},
+            name: event.data.toolName,
+        });
+    }
+});
+
+session.on("tool.execution_complete", async (event) => {
+    if (event.agentId !== reviewAgentId) {
+        return;
+    }
+
+    const toolCall = reviewToolCalls.get(event.data.toolCallId);
+    reviewToolCalls.delete(event.data.toolCallId);
+    if (!event.data.success || toolCall === undefined) {
+        return;
+    }
+
+    const changes = getFileChanges(toolCall.name, toolCall.args, memory.paths);
+    for (const change of changes) {
+        await session.log(
+            `Self-improvement ${change.operation}: ${change.path}`,
+            { ephemeral: true },
+        );
+    }
+});
+
 session.on("system.notification", async (event) => {
     const notification = event.data.kind;
     if (
@@ -112,9 +162,9 @@ session.on("system.notification", async (event) => {
         return;
     }
 
-    const completedAgentId = reviewAgentId;
     reviewAgentId = undefined;
     reviewInProgress = false;
+    reviewToolCalls.clear();
 
     if (
         notification.type === "agent_completed" &&
@@ -130,8 +180,4 @@ session.on("system.notification", async (event) => {
     await session.log("Periodic self-improvement review agent complete", {
         ephemeral: true,
     });
-
-    if (notification.type === "agent_idle") {
-        await session.rpc.tasks.cancel({ id: completedAgentId });
-    }
 });
