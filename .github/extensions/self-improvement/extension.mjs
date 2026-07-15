@@ -1,25 +1,14 @@
 import { joinSession } from "@github/copilot-sdk/extension";
-import { loadSettings, loadStorageFile } from "./settings.mjs";
+import { createMemory } from "./memory.mjs";
+import { loadSettings } from "./settings.mjs";
 
 const settings = await loadSettings();
-
-const [memory, userInfo] = await Promise.all([
-    loadStorageFile(settings.storageDirectory, "MEMORY.md"),
-    loadStorageFile(settings.storageDirectory, "USER.md"),
-]);
-
-const prompt = `
-<memory>
-${memory}
-</memory>
-<userInfo>
-${userInfo}
-</userInfo>
-`.trim();
+const memory = await createMemory(settings.storageDirectory);
 
 await joinSession({
     systemMessage: {
         mode: "append",
-        content: prompt,
+        content: memory.prompt,
     },
+    tools: memory.tools,
 });
