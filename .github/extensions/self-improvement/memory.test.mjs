@@ -119,6 +119,10 @@ test("creates the memory prompt and tools together", async (t) => {
         memory.tools.map((tool) => tool.name),
         ["memory_list", "memory_update"],
     );
+    assert.deepEqual(memory.paths, {
+        memory: join(storageDirectory, "MEMORY.md"),
+        user: join(storageDirectory, "USER.md"),
+    });
     assert.deepEqual(
         JSON.parse(await memory.tools[0].handler({ store: "all" })),
         {

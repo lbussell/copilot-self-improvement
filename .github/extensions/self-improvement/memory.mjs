@@ -365,6 +365,12 @@ export async function createMemory(storageDirectory) {
     ]);
 
     return {
+        paths: Object.fromEntries(
+            Object.entries(storeFiles).map(([store, fileName]) => [
+                store,
+                join(storageDirectory, fileName),
+            ]),
+        ),
         prompt: buildMemoryPrompt(memoryEntries, userEntries),
         tools: createMemoryTools(storageDirectory),
     };
