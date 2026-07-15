@@ -1,0 +1,18 @@
+{
+    "name": "self-improvement",
+    "description": "Adds automatic self-improvement to GitHub Copilot via periodic self-reflection.",
+    "version": "0.1.0",
+    "author": {
+        "name": "Logan Bussell",
+        "url": "https://github.com/lbussell"
+    },
+    "homepage": "https://github.com/lbussell/copilot-self-improvement",
+    "repository": "https://github.com/lbussell/copilot-self-improvement",
+    "keywords": [
+        "memory",
+        "self-improvement",
+        "skills",
+        "review"
+    ],
+    "extensions": ".github/extensions/self-improvement"
+}
