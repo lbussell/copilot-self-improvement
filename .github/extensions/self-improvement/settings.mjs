@@ -24,6 +24,21 @@ function resolveStorageDirectory(storageDirectory) {
     return resolve(expandedPath);
 }
 
+export async function loadStorageFile(storageDirectory, fileName) {
+    const filePath = join(storageDirectory, fileName);
+
+    try {
+        return await readFile(filePath, "utf8");
+    } catch (error) {
+        if (error.code !== "ENOENT") {
+            throw error;
+        }
+
+        await writeFile(filePath, "", "utf8");
+        return "";
+    }
+}
+
 export async function loadSettings() {
     await mkdir(settingsDirectory, { recursive: true });
 
