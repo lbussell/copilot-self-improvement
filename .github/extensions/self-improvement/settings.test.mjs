@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { isCopilotMemoryEnabled } from "./settings.mjs";
+import { isCopilotMemoryEnabled, loadSettings } from "./settings.mjs";
 
 async function createConfigDirectory(t) {
     const configDirectory = await mkdtemp(
@@ -57,4 +57,43 @@ test("ignores malformed settings like Copilot does", async (t) => {
     );
 
     assert.equal(await isCopilotMemoryEnabled(configDirectory), true);
+});
+
+test("stores extension settings and data under Copilot home", async (t) => {
+    const configDirectory = await createConfigDirectory(t);
+
+    const settings = await loadSettings(configDirectory);
+    const settingsPath = join(
+        configDirectory,
+        "self-improvement",
+        "settings.json",
+    );
+
+    assert.equal(
+        settings.storageDirectory,
+        join(configDirectory, "self-improvement", "storage"),
+    );
+    assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), {
+        storageDirectory: "$COPILOT_HOME/self-improvement/storage/",
+    });
+});
+
+test("expands COPILOT_HOME in configured storage paths", async (t) => {
+    const configDirectory = await createConfigDirectory(t);
+    const settingsDirectory = join(configDirectory, "self-improvement");
+    await mkdir(settingsDirectory, { recursive: true });
+    await writeFile(
+        join(settingsDirectory, "settings.json"),
+        `${JSON.stringify({
+            storageDirectory: "$COPILOT_HOME/custom-storage",
+        })}\n`,
+        "utf8",
+    );
+
+    const settings = await loadSettings(configDirectory);
+
+    assert.equal(
+        settings.storageDirectory,
+        join(configDirectory, "custom-storage"),
+    );
 });

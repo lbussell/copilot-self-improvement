@@ -3,12 +3,11 @@ import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
 const homeDirectory = homedir();
-const copilotSettingsDirectory =
-    process.env.COPILOT_HOME || join(homeDirectory, ".copilot");
-const settingsDirectory = join(homeDirectory, ".copilot", "self-improvement");
-const settingsPath = join(settingsDirectory, "settings.json");
+const copilotSettingsDirectory = resolve(
+    process.env.COPILOT_HOME || join(homeDirectory, ".copilot"),
+);
 const defaultSettings = {
-    storageDirectory: "$HOME/.copilot/self-improvement/storage/",
+    storageDirectory: "$COPILOT_HOME/self-improvement/storage/",
 };
 
 function removeJsonComments(contents) {
@@ -136,15 +135,17 @@ async function loadJsonObject(filePath) {
     }
 }
 
-function resolveStorageDirectory(storageDirectory) {
-    const expandedPath = storageDirectory.replace(
-        /^\$HOME(?=$|[\\/])/,
-        homeDirectory,
-    );
+function resolveStorageDirectory(
+    storageDirectory,
+    configDirectory = copilotSettingsDirectory,
+) {
+    const expandedPath = storageDirectory
+        .replace(/^\$COPILOT_HOME(?=$|[\\/])/, configDirectory)
+        .replace(/^\$HOME(?=$|[\\/])/, homeDirectory);
 
     if (!isAbsolute(expandedPath)) {
         throw new Error(
-            `The "storageDirectory" setting must be an absolute path or start with $HOME.`,
+            `The "storageDirectory" setting must be an absolute path or start with $COPILOT_HOME or $HOME.`,
         );
     }
 
@@ -182,7 +183,9 @@ export async function isCopilotMemoryEnabled(
     return configuredValue ?? true;
 }
 
-export async function loadSettings() {
+export async function loadSettings(configDirectory = copilotSettingsDirectory) {
+    const settingsDirectory = join(configDirectory, "self-improvement");
+    const settingsPath = join(settingsDirectory, "settings.json");
     await mkdir(settingsDirectory, { recursive: true });
 
     let contents;
@@ -216,7 +219,10 @@ export async function loadSettings() {
         );
     }
 
-    const storageDirectory = resolveStorageDirectory(settings.storageDirectory);
+    const storageDirectory = resolveStorageDirectory(
+        settings.storageDirectory,
+        configDirectory,
+    );
     await mkdir(storageDirectory, { recursive: true });
 
     return {
