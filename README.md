@@ -66,6 +66,6 @@ Plugins installed from GitHub are cached.
 Use `copilot plugin update self-improvement` after pushing changes.
 
 For local development outside this repository, start Copilot with `copilot
---plugin-dir /path/to/copilot-self-improvement`; each new session loads the
-current working tree. When Copilot runs inside this repository, the plugin is
-discovered automatically.
+--plugin-dir /path/to/copilot-self-improvement/.github/extensions/self-improvement`;
+each new session loads the current working tree. When Copilot runs inside this
+repository, the plugin is discovered automatically.

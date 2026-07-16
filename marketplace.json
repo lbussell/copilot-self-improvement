@@ -12,7 +12,7 @@
             "name": "self-improvement",
             "description": "Adds automatic self-improvement to GitHub Copilot via periodic self-reflection.",
             "version": "0.1.0",
-            "source": "."
+            "source": ".github/extensions/self-improvement"
         }
     ]
 }
