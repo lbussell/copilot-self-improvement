@@ -78,7 +78,7 @@ session = await joinSession({
 await session.log(
     [
         `Self-improvement enabled (every ${defaultReviewInterval} turns).`
-            + ` /reflect to run self-reflection without waiting ${defaultReviewInterval} turns.`,
+            + " /reflect to run self-reflection manually",
         `Skills: \`${skillDirectory}\``,
         `Memory: \`${memory.paths.memory}\``,
     ].join("\n"),
