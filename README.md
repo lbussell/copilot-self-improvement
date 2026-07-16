@@ -11,13 +11,14 @@ Install directly from GitHub:
 copilot plugin install lbussell/copilot-self-improvement
 ```
 
-Or, clone this repo and install from your local copy:
+Or, clone this repo and load the local working tree:
 
 ```powershell
-copilot plugin install .
+copilot --plugin-dir /path/to/copilot-self-improvement
 ```
 
-Start a new Copilot CLI session and verify the plugin is enabled with the `/env` command.
+`--plugin-dir` starts a Copilot CLI session with the local plugin loaded without
+installing or caching it. Verify the plugin is enabled with the `/env` command.
 
 ## Usage
 
@@ -47,5 +48,10 @@ The storage directory is configurable in `settings.json`.
 
 ## Development
 
-Plugin installs are cached.
-If running from local checkout, re-run `copilot plugin install .` after making changes.
+Plugins installed from GitHub are cached. Use `copilot plugin update
+self-improvement` after pushing changes.
+
+For local development outside this repository, start Copilot with `copilot
+--plugin-dir /path/to/copilot-self-improvement`; each new session loads the
+current working tree. When Copilot runs inside this repository, the plugin is
+discovered automatically.
