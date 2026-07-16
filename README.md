@@ -22,18 +22,30 @@ installing or caching it. Verify the plugin is enabled with the `/env` command.
 
 ## Usage
 
-Self-improvement happens automatically as you use Copilot with this extension enabled.
-Copilot will automatically keep MEMORY.md, USER.md, and skills up-to-date.
+When this extension is installed and enabled, Copilot will automatically keep
+its memories and skills up-to-date.
 
 Every few turns, a background agent analyzes your conversation and looks for
 things that went wrong, corrections you made, preferences you expressed, etc.
-and make updates to memory, skills, and instructions accordingly.
+and updates the extension-managed memory (when active) and skills accordingly.
 
 You can run `/reflect` to manually trigger the review process.
 
+### Memory
+
+This extension contains its own memory feature which conflicts with Copilot's
+built-in (preview/experimental) memory feature. When Copilot's built-in memory
+is enabled, this extension disables its memory management features. I recommend
+turning `/memory off` when using this extension.
+
+The reason for this is because Copilot's built-in memory feature stores
+memories on your account and on your GitHub repo, not in source contol. This
+extension manages memories in local files on-disk. This makes it easier to
+inspect, modify, track changes, and back up memories.
+
 ## Data and settings
 
-By default, persistent data is stored under:
+Persistent data is stored under `~/.copilot/self-improvement`
 
 ```text
 ~/.copilot/self-improvement/
@@ -44,12 +56,13 @@ By default, persistent data is stored under:
         USER.md
 ```
 
-The storage directory is configurable in `settings.json`.
+The storage directory is configurable in `settings.json`. You can override
+Copilot's settings/home directory with `$COPILOT_HOME`.
 
 ## Development
 
-Plugins installed from GitHub are cached. Use `copilot plugin update
-self-improvement` after pushing changes.
+Plugins installed from GitHub are cached.
+Use `copilot plugin update self-improvement` after pushing changes.
 
 For local development outside this repository, start Copilot with `copilot
 --plugin-dir /path/to/copilot-self-improvement`; each new session loads the
