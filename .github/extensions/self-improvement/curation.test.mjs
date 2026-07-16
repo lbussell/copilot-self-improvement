@@ -107,6 +107,19 @@ test("builds concise memory and skill review guidance", () => {
     assert.match(prompt, /Prefer concise answers/);
 });
 
+test("omits memory guidance when extension memory is disabled", () => {
+    const prompt = buildCurationReviewPrompt(
+        "C:\\persistent-skills",
+        "User:\nPrefer concise answers.",
+        false,
+    );
+
+    assert.doesNotMatch(prompt, /Memory:/);
+    assert.doesNotMatch(prompt, /compact, durable facts/);
+    assert.match(prompt, /Skills:/);
+    assert.match(prompt, /C:\\persistent-skills/);
+});
+
 test("extracts file changes from review tool calls", () => {
     assert.deepEqual(
         getFileChanges(

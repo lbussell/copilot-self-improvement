@@ -10,10 +10,17 @@ import {
     getFileChanges,
 } from "./curation.mjs";
 import { createMemory } from "./memory.mjs";
-import { loadSettings } from "./settings.mjs";
+import {
+    isCopilotMemoryEnabled,
+    loadSettings,
+} from "./settings.mjs";
 
 const settings = await loadSettings();
-const memory = await createMemory(settings.storageDirectory);
+const copilotMemoryEnabled = await isCopilotMemoryEnabled();
+const memory = copilotMemoryEnabled
+    ? undefined
+    : await createMemory(settings.storageDirectory);
+const memoryPaths = memory?.paths ?? {};
 const extensionDirectory = dirname(fileURLToPath(import.meta.url));
 const skillDirectory = join(settings.storageDirectory, "skills");
 const bundledSkillDirectory = join(extensionDirectory, "skills");
@@ -56,7 +63,10 @@ session = await joinSession({
     ],
     systemMessage: {
         mode: "append",
-        content: `${skillsGuidance}\n\n${memory.prompt}`,
+        content:
+            memory === undefined
+                ? skillsGuidance
+                : `${skillsGuidance}\n\n${memory.prompt}`,
     },
     hooks: {
         onUserPromptSubmitted: (input, invocation) => {
@@ -72,7 +82,7 @@ session = await joinSession({
         skillDirectory,
         bundledSkillDirectory,
     ],
-    tools: memory.tools,
+    tools: memory?.tools ?? [],
 });
 
 await session.log(
@@ -80,7 +90,9 @@ await session.log(
         `Self-improvement enabled (every ${defaultReviewInterval} turns).`
             + " /reflect to run self-reflection manually",
         `Skills: \`${skillDirectory}\``,
-        `Memory: \`${memory.paths.memory}\``,
+        memory === undefined
+            ? "Memory: Copilot memory enabled; extension memory disabled"
+            : `Memory: \`${memory.paths.memory}\``,
     ].join("\n"),
     { ephemeral: true },
 );
@@ -98,8 +110,15 @@ async function runReview() {
         const result = await session.rpc.tasks.startAgent({
             agentType: "general-purpose",
             name: "self-improvement-review",
-            description: "Review recent turns for durable memory and skills",
-            prompt: buildCurationReviewPrompt(skillDirectory, conversation),
+            description:
+                memory === undefined
+                    ? "Review recent turns for durable skills"
+                    : "Review recent turns for durable memory and skills",
+            prompt: buildCurationReviewPrompt(
+                skillDirectory,
+                conversation,
+                memory !== undefined,
+            ),
         });
         reviewAgentId = result.agentId;
     } catch (error) {
@@ -141,7 +160,7 @@ session.on("tool.execution_complete", async (event) => {
         return;
     }
 
-    const changes = getFileChanges(toolCall.name, toolCall.args, memory.paths);
+    const changes = getFileChanges(toolCall.name, toolCall.args, memoryPaths);
     for (const change of changes) {
         await session.log(
             `Self-improvement ${change.operation}: \`${change.path}\``,

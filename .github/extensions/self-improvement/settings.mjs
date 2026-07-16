@@ -3,11 +3,138 @@ import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
 const homeDirectory = homedir();
+const copilotSettingsDirectory =
+    process.env.COPILOT_HOME || join(homeDirectory, ".copilot");
 const settingsDirectory = join(homeDirectory, ".copilot", "self-improvement");
 const settingsPath = join(settingsDirectory, "settings.json");
 const defaultSettings = {
     storageDirectory: "$HOME/.copilot/self-improvement/storage/",
 };
+
+function removeJsonComments(contents) {
+    let result = "";
+    let inString = false;
+    let escaped = false;
+
+    for (let index = 0; index < contents.length; index += 1) {
+        const character = contents[index];
+        const nextCharacter = contents[index + 1];
+
+        if (inString) {
+            result += character;
+            if (escaped) {
+                escaped = false;
+            } else if (character === "\\") {
+                escaped = true;
+            } else if (character === '"') {
+                inString = false;
+            }
+            continue;
+        }
+
+        if (character === '"') {
+            inString = true;
+            result += character;
+            continue;
+        }
+
+        if (character === "/" && nextCharacter === "/") {
+            while (
+                index < contents.length &&
+                contents[index] !== "\n" &&
+                contents[index] !== "\r"
+            ) {
+                index += 1;
+            }
+            index -= 1;
+            continue;
+        }
+
+        if (character === "/" && nextCharacter === "*") {
+            index += 2;
+            while (
+                index < contents.length &&
+                !(contents[index] === "*" && contents[index + 1] === "/")
+            ) {
+                if (contents[index] === "\n" || contents[index] === "\r") {
+                    result += contents[index];
+                }
+                index += 1;
+            }
+            index += 1;
+            continue;
+        }
+
+        result += character;
+    }
+
+    return result;
+}
+
+function removeTrailingCommas(contents) {
+    let result = "";
+    let inString = false;
+    let escaped = false;
+
+    for (let index = 0; index < contents.length; index += 1) {
+        const character = contents[index];
+
+        if (inString) {
+            result += character;
+            if (escaped) {
+                escaped = false;
+            } else if (character === "\\") {
+                escaped = true;
+            } else if (character === '"') {
+                inString = false;
+            }
+            continue;
+        }
+
+        if (character === '"') {
+            inString = true;
+            result += character;
+            continue;
+        }
+
+        if (character === ",") {
+            let nextIndex = index + 1;
+            while (/\s/.test(contents[nextIndex] ?? "")) {
+                nextIndex += 1;
+            }
+            if (contents[nextIndex] === "}" || contents[nextIndex] === "]") {
+                continue;
+            }
+        }
+
+        result += character;
+    }
+
+    return result;
+}
+
+async function loadJsonObject(filePath) {
+    let contents;
+    try {
+        contents = await readFile(filePath, "utf8");
+    } catch (error) {
+        if (error.code === "ENOENT") {
+            return undefined;
+        }
+        throw error;
+    }
+
+    try {
+        const value = JSON.parse(
+            removeTrailingCommas(removeJsonComments(contents)),
+        );
+        return value !== null && !Array.isArray(value) && typeof value === "object"
+            ? value
+            : undefined;
+    } catch {
+        return undefined;
+    }
+}
 
 function resolveStorageDirectory(storageDirectory) {
     const expandedPath = storageDirectory.replace(
@@ -37,6 +164,22 @@ export async function loadStorageFile(storageDirectory, fileName) {
         await writeFile(filePath, "", "utf8");
         return "";
     }
+}
+
+export async function isCopilotMemoryEnabled(
+    configDirectory = copilotSettingsDirectory,
+) {
+    const [settings, legacyConfig] = await Promise.all([
+        loadJsonObject(join(configDirectory, "settings.json")),
+        loadJsonObject(join(configDirectory, "config.json")),
+    ]);
+    const configuredValue =
+        (typeof legacyConfig?.memory === "boolean"
+            ? legacyConfig.memory
+            : undefined) ??
+        (typeof settings?.memory === "boolean" ? settings.memory : undefined);
+
+    return configuredValue ?? true;
 }
 
 export async function loadSettings() {
