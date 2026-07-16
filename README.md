@@ -5,10 +5,11 @@ and skill creation via periodic self-reflection.
 
 ## Install
 
-Install directly from GitHub:
+Add the marketplace, then install the plugin:
 
 ```powershell
-copilot plugin install lbussell/copilot-self-improvement
+copilot plugin marketplace add lbussell/copilot-self-improvement
+copilot plugin install self-improvement@lbussell
 ```
 
 Or, clone this repo and load the local working tree:
