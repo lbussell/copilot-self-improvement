@@ -30,7 +30,9 @@ Every few turns, a background agent analyzes your conversation and looks for
 things that went wrong, corrections you made, preferences you expressed, etc.
 and updates the extension-managed memory (when active) and skills accordingly.
 
-You can run `/reflect` to manually trigger the review process.
+You can run `/reflect` to review the ten most recent turns, `/reflect 25` to
+choose a different number of turns, or `/reflect all` to review the whole
+conversation.
 
 ### Memory
 

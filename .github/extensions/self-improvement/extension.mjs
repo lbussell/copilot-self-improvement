@@ -4,10 +4,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
     buildCurationReviewPrompt,
+    buildFullSessionCurationReviewPrompt,
     createPeriodicCurationReview,
     defaultReviewInterval,
     formatRecentConversation,
     getFileChanges,
+    parseReflectArgument,
 } from "./curation.mjs";
 import { createMemory } from "./memory.mjs";
 import {
@@ -46,8 +48,9 @@ session = await joinSession({
     commands: [
         {
             name: "reflect",
-            description: "Run the self-improvement review now",
-            handler: async () => {
+            description:
+                'Review recent turns for self-improvement: /reflect [turns|"all"]',
+            handler: async ({ args, sessionId }) => {
                 if (reviewInProgress) {
                     await session.log(
                         "A self-improvement review agent is already running",
@@ -56,8 +59,19 @@ session = await joinSession({
                     return;
                 }
 
+                let scope;
+                try {
+                    scope = parseReflectArgument(args);
+                } catch (error) {
+                    await session.log(error.message, {
+                        level: "warning",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+
                 reviewPending = false;
-                await runReview();
+                await runReview(scope, sessionId);
             },
         },
     ],
@@ -97,13 +111,22 @@ await session.log(
     { ephemeral: true },
 );
 
-async function runReview() {
+async function runReview(scope = defaultReviewInterval, sessionId) {
     reviewInProgress = true;
 
     try {
-        const conversation = formatRecentConversation(
-            await session.getEvents(),
-        );
+        const prompt =
+            scope === "all"
+                ? buildFullSessionCurationReviewPrompt(
+                    skillDirectory,
+                    sessionId,
+                    memory !== undefined,
+                )
+                : buildCurationReviewPrompt(
+                    skillDirectory,
+                    formatRecentConversation(await session.getEvents(), scope),
+                    memory !== undefined,
+                );
         await session.log("Starting periodic self-improvement review agent", {
             ephemeral: true,
         });
@@ -114,11 +137,7 @@ async function runReview() {
                 memory === undefined
                     ? "Review recent turns for durable skills"
                     : "Review recent turns for durable memory and skills",
-            prompt: buildCurationReviewPrompt(
-                skillDirectory,
-                conversation,
-                memory !== undefined,
-            ),
+            prompt,
         });
         reviewAgentId = result.agentId;
     } catch (error) {

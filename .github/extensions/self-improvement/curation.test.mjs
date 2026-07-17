@@ -2,10 +2,26 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
     buildCurationReviewPrompt,
+    buildFullSessionCurationReviewPrompt,
     createPeriodicCurationReview,
     formatRecentConversation,
     getFileChanges,
+    parseReflectArgument,
 } from "./curation.mjs";
+
+test("parses reflect command scopes", () => {
+    assert.equal(parseReflectArgument(""), 10);
+    assert.equal(parseReflectArgument(" 25 "), 25);
+    assert.equal(parseReflectArgument("ALL"), "all");
+    assert.throws(
+        () => parseReflectArgument("0"),
+        /positive number of turns/,
+    );
+    assert.throws(
+        () => parseReflectArgument("several"),
+        /positive number of turns/,
+    );
+});
 
 test("triggers a review every tenth turn", () => {
     const review = createPeriodicCurationReview();
@@ -92,6 +108,26 @@ test("formats the ten most recent foreground turns", () => {
     assert.doesNotMatch(conversation, /Background result/);
 });
 
+test("formats a requested number of foreground turns", () => {
+    const events = [];
+    for (let index = 1; index <= 4; index += 1) {
+        events.push({
+            type: "user.message",
+            data: { content: `Question ${index}` },
+        });
+        events.push({
+            type: "assistant.message",
+            data: { content: `Answer ${index}` },
+        });
+    }
+
+    const conversation = formatRecentConversation(events, 2);
+
+    assert.doesNotMatch(conversation, /Question 2/);
+    assert.match(conversation, /Question 3/);
+    assert.match(conversation, /Answer 4/);
+});
+
 test("builds concise memory and skill review guidance", () => {
     const prompt = buildCurationReviewPrompt(
         "C:\\persistent-skills",
@@ -105,6 +141,19 @@ test("builds concise memory and skill review guidance", () => {
     assert.match(prompt, /C:\\persistent-skills/);
     assert.match(prompt, /make no persistence changes/);
     assert.match(prompt, /Prefer concise answers/);
+});
+
+test("builds a full-session review prompt without an embedded transcript", () => {
+    const prompt = buildFullSessionCurationReviewPrompt(
+        "C:\\persistent-skills",
+        "session-123",
+    );
+
+    assert.match(prompt, /session ID: session-123/);
+    assert.match(prompt, /session history tools/);
+    assert.match(prompt, /entire foreground conversation/);
+    assert.doesNotMatch(prompt, /<recentConversation>/);
+    assert.doesNotMatch(prompt, /transcript includes/);
 });
 
 test("omits memory guidance when extension memory is disabled", () => {
